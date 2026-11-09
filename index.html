@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>금고를 열어라!</title>
+<style>
+:root{--bg:#0f2a33;--panel:#17394a;--line:#2f6178;--ink:#e8f6f3;--dim:#9cc3c9;--ok:#5fe3a1;--bad:#ff7a45;--accent:#ffd166;--cell:#e8f6f3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Jua","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;min-height:100vh}
+main{max-width:1080px;margin:0 auto;padding:12px 16px 20px}
+h1{font-size:clamp(24px,4.5vw,32px);margin:0 0 2px;letter-spacing:-.02em}
+.sub{color:var(--dim);margin:0 0 10px}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:18px;margin:0 0 8px;color:var(--accent)}
+.rules{margin:0;padding-left:20px}
+.clues{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.clues li{display:flex;gap:10px;align-items:flex-start;background:#0f2a33;border-left:5px solid var(--accent);padding:8px 12px;border-radius:8px}
+.clues b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0f2a33;display:grid;place-items:center;font-size:15px}
+.lock{text-align:center}
+/* 네모 숫자 */
+.g{position:relative;--dot:#ff5c8a;display:inline-grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(5,1fr);gap:0;transition:transform .6s}
+.g i{background:transparent;border-radius:0}
+.g i.on{background:var(--cell);box-shadow:0 0 0 .6px var(--cell)}
+.g.rot{transform:rotate(180deg)}
+.slots{display:flex;gap:8px;justify-content:center;margin:8px 0}
+.slot{width:clamp(44px,13vw,62px);height:clamp(66px,19vw,90px);display:grid;place-items:center;background:#0b1f26;border:3px solid var(--line);border-radius:10px;cursor:pointer;padding:0}
+.slot.act{border-color:var(--accent);box-shadow:0 0 0 3px #ffd16655}
+.slot .g{width:56%;height:70%}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:400px;margin:10px auto}
+.key{background:#0b1f26;border:2px solid var(--line);border-radius:10px;padding:6px 0;display:grid;place-items:center;cursor:pointer}
+.key .g{width:26px;height:42px;--cell:var(--ink)}
+.key:hover{border-color:var(--accent)}
+button{font:inherit;font-size:18px;padding:10px 26px;border:0;border-radius:10px;background:var(--accent);color:#0f2a33;cursor:pointer}
+button:focus-visible,.slot:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+button.ghost{background:transparent;color:var(--dim);border:2px solid var(--line);font-size:16px;padding:8px 16px;margin:4px}
+.tools{margin-top:4px}
+#msg{min-height:26px;margin:6px 0 0;font-size:17px}
+.bad{color:var(--bad)}.good{color:var(--ok)}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+#open{display:none;text-align:center;border-color:var(--ok)}
+#open.show{display:block}
+#open h2{color:var(--ok);font-size:26px}
+#final{display:flex;gap:8px;justify-content:center;margin:12px 0}
+#final .g{width:44px;height:72px;--cell:var(--ok)}
+.layout{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+@media (min-width:860px){.layout{grid-template-columns:1fr 1fr}}
+.layout .card{margin-bottom:0;padding:12px 16px}
+.note{margin:10px 0 0;padding:10px 12px;background:#3b2a1a;border-left:5px solid var(--bad);border-radius:8px}
+.vault{position:relative;min-height:340px;perspective:900px;border-radius:14px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#4a4720,#0b1f26 70%);border:6px solid #2c3d46}
+.inside{position:absolute;inset:0;display:grid;place-content:center;gap:4px;padding:16px;text-align:center}
+.inside .trophy{font-size:56px}
+.inside h2{margin:0}
+.door{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(145deg,#9fb2bb,#566b76);display:grid;place-items:center;z-index:2}
+.wheel{width:120px;height:120px;border-radius:50%;border:12px solid var(--accent);position:relative;background:#2c3d46}
+.wheel::before,.wheel::after{content:"";position:absolute;left:50%;top:50%;background:var(--accent);border-radius:4px;transform:translate(-50%,-50%)}
+.wheel::before{width:136px;height:10px}
+.wheel::after{width:10px;height:136px}
+.run .wheel{animation:spin 1.3s ease-in-out forwards}
+.run .door{animation:swing 1.2s 1.4s ease-in forwards}
+.run .trophy{animation:pop .6s 2.4s both}
+@keyframes spin{to{transform:rotate(540deg)}}
+@keyframes swing{to{transform:rotateY(-110deg);opacity:0;visibility:hidden}}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+#conf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}.g{transition:none}.door{display:none}.run .trophy{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>🔐 금고를 열어라!</h1>
+<p class="sub">단서를 활용하여 비밀번호를 알아내세요.</p>
+
+<div class="layout">
+<section class="card">
+<h2>암호 해독 단서</h2>
+<ol class="clues">
+<li><b>1</b><span>첫 번째, 세 번째, 마지막 숫자는 모두 점대칭도형이자 선대칭도형이 되는 모양의 숫자입니다.</span></li>
+<li><b>2</b><span>두 번째 숫자는 대칭의 중심을 기준으로 180° 돌렸을 때 여러분의 학년을 나타내는 모양의 숫자가 됩니다.</span></li>
+<li><b>3</b><span>세 번째 숫자는 첫 번째 숫자보다 큽니다.</span></li>
+<li><b>4</b><span>네 번째 숫자는 대칭의 중심을 기준으로 180° 돌렸을 때 여러분의 반을 나타내는 모양의 숫자가 됩니다.</span></li>
+<li><b>5</b><span>마지막 숫자는 점대칭도형이 되는 모양의 숫자 중 가장 큰 숫자입니다.</span></li>
+</ol>
+<p class="note">⚠️ 주의할 점: 각 숫자는 한 번씩만 사용할 수 있습니다.</p>
+</section>
+
+<section class="card lock" id="lock">
+<h2>숫자 모양 보기</h2>
+<p class="sub" style="margin-bottom:0">숫자를 눌러 입력하세요. 180° 돌려 보면 점대칭도형인지 확인할 수 있어요.</p>
+<div class="pad" id="pad"></div>
+<div class="tools"><button class="ghost" id="rot">🔄 180° 돌려보기</button></div>
+
+<h2 style="margin-top:8px">비밀번호 입력</h2>
+<div class="slots" id="slots"></div>
+<button id="go">문 열기</button>
+<div class="tools"><button class="ghost" id="del">⌫ 지우기</button><button class="ghost" id="reset">모두 지우기</button></div>
+<p id="msg" role="status" aria-live="polite"></p>
+<p class="sub" id="tries"></p>
+</section>
+</div>
+
+<section class="card" id="open">
+<div class="vault" id="vault">
+<div class="inside">
+<div class="trophy">🏆</div>
+<h2>🎉 금고가 열렸습니다!</h2>
+<p>축하합니다! 암호를 해독하여 비밀번호를 맞혔어요!</p>
+<div id="final"></div>
+<p class="sub" id="cnt"></p>
+<div><button class="ghost" id="again">🔄 처음으로 다시 하기</button></div>
+</div>
+<div class="door"><div class="wheel"></div></div>
+</div>
+</section>
+<canvas id="conf" aria-hidden="true"></canvas>
+</main>
+
+<script>
+const HASH="c81baa8fad6dc4e07059c8d930ac9a666f79e54bfc7bce540af3434b8cdc423f";
+// 3×5 칸으로 만든 네모 숫자 (1은 가운데 막대)
+const F={
+0:"111101101101111",1:"010010010010010",2:"111001111100111",3:"111001111001111",4:"101101111001001",
+5:"111100111001111",6:"111100111101111",7:"111001001001001",8:"111101111101111",9:"111101111001111"};
+function glyph(d){const g=document.createElement("div");g.className="g";
+ [...F[d]].forEach(c=>{const i=document.createElement("i");if(c==="1")i.className="on";g.appendChild(i)});
+ g.setAttribute("role","img");g.setAttribute("aria-label",String(d));return g}
+
+const slotsEl=document.getElementById("slots"),pad=document.getElementById("pad");
+const msg=document.getElementById("msg"),tries=document.getElementById("tries");
+let val=["","","","",""],act=0,n=0,rotated=false;
+
+function say(t,c){msg.textContent=t;msg.className=c||""}
+function render(){
+ slotsEl.innerHTML="";
+ val.forEach((v,i)=>{const b=document.createElement("button");b.type="button";
+  b.className="slot"+(i===act?" act":"");b.setAttribute("aria-label",(i+1)+"번째 칸"+(v!==""?" "+v:" 비어 있음"));
+  if(v!=="")b.appendChild(glyph(v));
+  b.onclick=()=>{act=i;render()};slotsEl.appendChild(b)});
+}
+function put(d){val[act]=String(d);if(act<4)act++;render()}
+function back(){if(val[act]===""&&act>0)act--;val[act]="";render()}
+for(let d=0;d<=9;d++){const k=document.createElement("button");k.type="button";k.className="key";
+ k.setAttribute("aria-label","숫자 "+d);k.appendChild(glyph(d));k.onclick=()=>put(d);pad.appendChild(k)}
+document.getElementById("rot").onclick=()=>{rotated=!rotated;
+ pad.querySelectorAll(".g").forEach(g=>g.classList.toggle("rot",rotated))};
+document.getElementById("del").onclick=back;
+document.getElementById("reset").onclick=()=>{val=["","","","",""];act=0;say("");render()};
+document.addEventListener("keydown",e=>{
+ if(/^[0-9]$/.test(e.key))put(e.key);
+ else if(e.key==="Backspace")back();
+ else if(e.key==="ArrowLeft"&&act>0){act--;render()}
+ else if(e.key==="ArrowRight"&&act<4){act++;render()}
+ else if(e.key==="Enter"&&document.activeElement.tagName!=="BUTTON")check();
+});
+async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function check(){
+ const code=val.join("");
+ if(code.length<5){say("다섯 칸을 모두 채워 주세요.","bad");return}
+ if(new Set(code).size<5){say("같은 숫자를 두 번 쓸 수 없어요. 규칙을 다시 확인하세요.","bad");return}
+ n++;
+ if(await sha(code)===HASH){
+  document.querySelector(".layout").style.display="none";
+  document.getElementById("open").classList.add("show");
+  const f=document.getElementById("final");[...code].forEach(d=>f.appendChild(glyph(d)));
+  document.getElementById("cnt").textContent="도전 "+n+"번째에 성공했어요.";
+  document.getElementById("open").scrollIntoView({block:"center"});
+  document.getElementById("vault").classList.add("run");
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches)setTimeout(confetti,2000);
+ }else{
+  say("비밀번호가 틀렸어요. 단서를 다시 읽어 보세요.","bad");
+  tries.textContent="도전 횟수: "+n+"번";
+  slotsEl.classList.remove("shake");void slotsEl.offsetWidth;slotsEl.classList.add("shake");
+ }
+}
+function confetti(){const c=document.getElementById("conf"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+ const cols=["#ffd166","#5fe3a1","#ff7a45","#7cc7ff","#ff5c8a"];
+ const p=Array.from({length:150},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,w:6+Math.random()*6,h:8+Math.random()*8,vy:2+Math.random()*3,vx:-1.5+Math.random()*3,r:Math.random()*6,vr:-.2+Math.random()*.4,c:cols[Math.random()*5|0]}));
+ let t=0;(function f(){x.clearRect(0,0,c.width,c.height);
+  p.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.r+=q.vr;x.save();x.translate(q.x,q.y);x.rotate(q.r);x.fillStyle=q.c;x.fillRect(-q.w/2,-q.h/2,q.w,q.h);x.restore()});
+  if(++t<320)requestAnimationFrame(f);else x.clearRect(0,0,c.width,c.height)})()}
+document.getElementById("go").onclick=check;
+document.getElementById("again").onclick=()=>{
+ document.getElementById("open").classList.remove("show");
+ document.getElementById("vault").classList.remove("run");
+ document.getElementById("final").innerHTML="";
+ document.querySelector(".layout").style.display="";
+ val=["","","","",""];act=0;n=0;say("");tries.textContent="";render();scrollTo(0,0)};
+render();
+</script>
+</body>
+</html>
